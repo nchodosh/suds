@@ -100,24 +100,7 @@ def _get_opts() -> Namespace:
 
 
 def main(hparams: Namespace) -> None:
-    assert hparams.train_every is not None or hparams.test_every is not None, \
-        'Exactly one of train_every or test_every must be specified'
-
-    assert hparams.train_every is None or hparams.test_every is None, \
-        'Only one of train_every or test_every must be specified'
-
-    if hparams.frame_ranges is not None:
-        frame_ranges = []
-        for i in range(0, len(hparams.frame_ranges), 2):
-            frame_ranges.append([hparams.frame_ranges[i], hparams.frame_ranges[i + 1]])
-    else:
-        frame_ranges = None
-
-    metadata_items, static_masks, origin, pose_scale_factor, scene_bounds = get_smor_items(hparams.smor_path,
-                                                                                           frame_ranges,
-                                                                                           hparams.train_every,
-                                                                                           hparams.test_every)
-
+    metadata_items, static_masks, origin, pose_scale_factor, scene_bounds = get_smor_items(hparams.smor_path)
     write_metadata(hparams.output_path, metadata_items, static_masks, origin, pose_scale_factor, scene_bounds)
 
 
