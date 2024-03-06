@@ -1171,6 +1171,10 @@ class SUDSModel(Model):
                     flow_gt = batch[flow_key][flow_valid > 0].to(device)
                     if flow_gt.shape[0] > 0:
                         optical_flow = outputs[uv_key] - batch[RAY_INDEX][flow_valid > 0][..., [2, 1]].to(device)
+                        flow_loss = self.l1_loss(optical_flow, flow_gt)
+                        print(flow_loss)
+                        if flow_loss.isnan().any():
+                            breakpoint()
                         metrics_dict[flow_key] = self.l1_loss(optical_flow, flow_gt)
 
         if self.config.predict_shadow:
