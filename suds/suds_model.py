@@ -1533,6 +1533,6 @@ def _get_flow_uv(neighbor_w2cs: torch.Tensor, K: torch.Tensor, positions_world: 
     valid_weights = F.normalize(valid_weights, p=1.0, dim=-2)
     positions_cam = torch.sum(valid_weights * positions_cam, dim=-2)
     uv = (K @ positions_cam.reshape(-1, 3, 1)).view(-1, 3)
-    ret = uv[..., :2] / uv[..., 2:]
+    ret = uv[..., :2] / (uv[..., 2:] + 1e-10)
 
     return ret

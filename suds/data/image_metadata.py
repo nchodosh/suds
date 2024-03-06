@@ -113,7 +113,6 @@ class ImageMetadata:
             depth = torch.FloatTensor(table['depth'].to_numpy()).view(size[1], size[0])
         elif self.depth_path.endswith('.tiff'):
             # assume smor format
-            print('hi')
             depth = np.array(image_from_stream(self.depth_path))
             depth[depth == 0] = -1
             depth = torch.FloatTensor(depth / 1000)
