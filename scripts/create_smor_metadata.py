@@ -91,7 +91,7 @@ def get_smor_items(smor_path: str) -> \
             forward_flow_path, # pathname that forward flow will be written to or None if out of range
             backward_neighbor, # index of backward neighbor for flow computation or None if out of range
             forward_neighbor, # index of foward neighbor for flow computation or None if out of range
-            False, # is val
+            True, # is val
             1, # pose scale
             None # local cache
         )
