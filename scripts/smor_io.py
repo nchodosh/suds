@@ -65,7 +65,7 @@ def load_cam_info(root: Path):
         cam_map_intr = pickle.load(fd)
 
     depth_dir = root / 'depth'
-    cam_map_ts_map_depthf = {cam: {ts: depth_dir / f'{cam}_{ts}_depth.png' for ts in ts_map_imgf}
+    cam_map_ts_map_depthf = {cam: {ts: depth_dir / f'{cam}_{ts}_depth.tiff' for ts in ts_map_imgf}
                              for cam, ts_map_imgf in cam_map_ts_map_imgf.items()}
 
     return cam_map_ts_map_imgf, cam_map_ts_map_depthf, cam_map_ts_map_w_T_c, cam_map_intr
