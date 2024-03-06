@@ -64,7 +64,7 @@ def get_smor_items(smor_path: str) -> \
         backward_flow_path = f'{smor_path}/dino_correspondences/backward/{cam}/{ts}.parquet' if backward_neighbor is not None else None
         item = ImageMetadata(
             str(cam_map_ts_map_imgf[cam][ts]),
-            cam_map_ts_map_w_T_c[cam][ts],
+            torch.from_numpy(cam_map_ts_map_w_T_c[cam][ts]),
             image.size[0],
             image.size[1],
             torch.FloatTensor([K[0,0], K[1, 1], K[0, 2], K[1, 2]]), # intr: [K[0,0], K[1, 1], K[0, 2], L[1, 2]
