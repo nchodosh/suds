@@ -56,12 +56,23 @@ def get_smor_items(smor_path: str) -> \
 
         tss = sorted(list(cam_map_ts_map_index[cam].keys()))
         cam_frame_idx = tss.index(ts)
-        
-        forward_neighbor = cam_frame_idx + 1 if cam_frame_idx < len(tss) else None
-        backward_neighbor = cam_frame_idx - 1 if cam_frame_idx > 0 else None
 
-        forward_flow_path = f'{smor_path}/dino_correspondences/forward/{cam}/{ts}.parquet' if forward_neighbor is not None else None
-        backward_flow_path = f'{smor_path}/dino_correspondences/backward/{cam}/{ts}.parquet' if backward_neighbor is not None else None
+        if cam_frame_idx < len(tss):
+            forward_neighbor_ts = tss[cam_frame_idx + 1]
+            forward_neighbor = cam_map_ts_map_index[cam][forward_neighbor_ts]
+            forward_flow_path = f'{smor_path}/dino_correspondences/forward/{cam}/{ts}.parquet'
+        else:
+            forward_neighbor = None
+            forward_flow_path = None
+
+        if cam_frame_idx > 0:
+            backward_neighbor_ts = tss[cam_frame_idx - 1]
+            backward_neighbor = cam_map_ts_map_index[cam][backward_neighbor_ts]
+            backward_flow_path = f'{smor_path}/dino_correspondences/backward/{cam}/{ts}.parquet'
+        else:
+            backward_neighbor = None
+            backward_flow_path = None
+
         item = ImageMetadata(
             str(cam_map_ts_map_imgf[cam][ts]),
             torch.from_numpy(cam_map_ts_map_w_T_c[cam][ts])[:3],
