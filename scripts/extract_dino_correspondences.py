@@ -22,7 +22,7 @@ from tqdm import tqdm
 from extract_dino_features import ViTExtractor
 from suds.stream_utils import get_filesystem
 
-
+@torch.no_grad()
 def find_correspondences(extractor: ViTExtractor, image_path1: str, image_path2: str, num_pairs: int = 10,
                          load_size: int = 224, layer: int = 9,
                          facet: str = 'key', bin: bool = True, thresh: float = 0.05) -> Tuple[
