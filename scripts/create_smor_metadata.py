@@ -51,6 +51,7 @@ def get_smor_items(smor_path: str) -> \
         image = Image.open(path)
         K = cam_map_intr[cam]
         image_index = len(metadata_items)
+        assert image_index == cam_map_ts_map_index[cam][ts]
 
         time = ((ts - min_ts) / (max_ts - min_ts)) * 2 - 1
 
