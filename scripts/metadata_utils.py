@@ -65,8 +65,10 @@ def write_metadata(output_path: str, metadata_items: List[ImageMetadata], static
         }, f, indent=2)
 
 
-def get_bounds_from_depth(item: ImageMetadata, cur_min_bounds: Optional[torch.Tensor],
-                          cur_max_bounds: Optional[torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+def get_bounds_from_depth(item: ImageMetadata,
+                          cur_min_bounds: Optional[torch.Tensor],
+                          cur_max_bounds: Optional[torch.Tensor],
+                          depth_scale: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor]:
     ray_bundle = Cameras(camera_to_worlds=item.c2w,
                          fx=item.intrinsics[0],
                          fy=item.intrinsics[1],
@@ -80,7 +82,7 @@ def get_bounds_from_depth(item: ImageMetadata, cur_min_bounds: Optional[torch.Te
     depth = item.load_depth().view(-1)
 
     filtered_directions = directions[depth > 0]
-    filtered_depth = depth[depth > 0].unsqueeze(-1)
+    filtered_depth = depth[depth > 0].unsqueeze(-1) * depth_scale
     filtered_z_scale = ray_bundle.metadata['directions_norm'].view(-1, 1)[depth > 0]
 
     points = item.c2w[:, 3].unsqueeze(0) + filtered_directions * filtered_depth * filtered_z_scale
