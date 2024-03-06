@@ -38,7 +38,9 @@ def get_smor_items(smor_path: str) -> \
     max_frame = sum([len(cam_map_ts_map_imgf[cam]) for cam in cameras])
 
     cam_ts = [(cam, ts) for cam in cameras for ts in cam_map_ts_map_imgf[cam]]
-    cam_map_ts_map_index = {cam: {ts: i} for i, (cam, ts) in enumerate(cam_ts)}
+    cam_map_ts_map_index = {cam: {} for cam in cameras}
+    for i, (cam, ts) in enumerate(cam_ts):
+        cam_map_ts_map_index[cam][ts] = i
 
     min_ts = min([min(list(cam_map_ts_map_imgf[cam].keys())) for cam in cameras])
     max_ts = max([max(list(cam_map_ts_map_imgf[cam].keys())) for cam in cameras])
