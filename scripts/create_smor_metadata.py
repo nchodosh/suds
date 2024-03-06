@@ -58,7 +58,7 @@ def get_smor_items(smor_path: str) -> \
         tss = sorted(list(cam_map_ts_map_index[cam].keys()))
         cam_frame_idx = tss.index(ts)
 
-        if cam_frame_idx < len(tss):
+        if cam_frame_idx < len(tss) - 1:
             forward_neighbor_ts = tss[cam_frame_idx + 1]
             forward_neighbor = cam_map_ts_map_index[cam][forward_neighbor_ts]
             forward_flow_path = f'{smor_path}/dino_correspondences/forward/{cam}/{ts}.parquet'
