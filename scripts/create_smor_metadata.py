@@ -97,7 +97,7 @@ def get_smor_items(smor_path: str) -> \
         )
 
         metadata_items.append(item)
-        min_bounds, max_bounds = get_bounds_from_depth(item, min_bounds, max_bounds, depth_scale= 1/1000)
+        min_bounds, max_bounds = get_bounds_from_depth(item, min_bounds, max_bounds)
 
     origin, pose_scale_factor, scene_bounds = scale_bounds(metadata_items, min_bounds, max_bounds)
 
