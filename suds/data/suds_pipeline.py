@@ -90,11 +90,12 @@ class SUDSPipeline(VanillaPipeline):
                 outputs = self.model.get_outputs_for_camera_ray_bundle(camera_ray_bundle)
                 metrics_dict, images = self.model.get_image_metrics_and_images(outputs, batch, eval_depth_only=True)
 
-                if image_save_dir is not None:
-                    for key, val in images.items():
-                        Image.fromarray((val * 255).byte().cpu().numpy()).save(
-                            image_save_dir / '{0:06d}-{1}.jpg'.format(int(camera_ray_bundle.camera_indices[0, 0, 0]),
-                                                                      key))
+                
+                # if image_save_dir is not None:
+                #     for key, val in images.items():
+                #         Image.fromarray((val * 255).byte().cpu().numpy()).save(
+                #             image_save_dir / '{0:06d}-{1}.jpg'.format(int(camera_ray_bundle.camera_indices[0, 0, 0]),
+                #                                                       key))
 
                 assert "num_rays_per_sec" not in metrics_dict
                 metrics_dict["num_rays_per_sec"] = num_rays / (time() - inner_start)
