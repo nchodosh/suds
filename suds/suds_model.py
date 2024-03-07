@@ -28,7 +28,6 @@ from torchmetrics import PeakSignalNoiseRatio
 from torchmetrics.image import LearnedPerceptualImagePatchSimilarity
 from torchtyping import TensorType
 from nerfstudio.cameras.cameras import Cameras
-from nerfstudio.data.scene_box import OrientedBox
 
 from suds.composite_proposal_network_sampler import CompositeProposalNetworkSampler
 from suds.data.suds_dataparser import ALL_ITEMS, POSE_SCALE_FACTOR, ORIGIN
