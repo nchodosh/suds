@@ -703,6 +703,7 @@ class SUDSModel(Model):
         
     def get_outputs_for_camera_ray_bundle(self, camera_ray_bundle: RayBundle, render_options: Optional[Dict[str, any]] = None) -> Dict[str, torch.Tensor]:
         outputs = super().get_outputs_for_camera_ray_bundle(camera_ray_bundle, render_options)
+        print('got_outputs')
         outputs['ray_directions'] = camera_ray_bundle.directions
         return outputs
     
