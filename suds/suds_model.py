@@ -1352,7 +1352,7 @@ class SUDSModel(Model):
         target_z = ground_truth_z[z_mask]
 
         ray_dirs = outputs['ray_directions']
-        img_plane_points = ray_dirs / ray_dirs[..., 2]
+        img_plane_points = ray_dirs / ray_dirs[..., 2:]
         
         ground_truth_xyz = (img_plane_points[z_mask.squeeze(), :] * target_z[..., None]).float()
         predicted_xyz = (img_plane_points.directions * outputs[DEPTH]).reshape(-1, 3)
