@@ -134,7 +134,7 @@ class SUDSDataManager(DataManager):
             cameras=eval_dataparser_outputs.metadata[ALL_CAMERAS],
             load_depth=self.config.load_depth,
             load_features=self.config.load_features,
-            image_indices=self.config.eval_image_indices,
+            image_indices=[0, 20, 40, 80, 100, 120, 140, 160, 180, 200, 220], #self.config.eval_image_indices,
             load_flow=self.config.load_flow,
             load_sky=self.config.load_sky,
             feature_clusters=self.config.feature_clusters,
