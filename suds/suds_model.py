@@ -1270,13 +1270,11 @@ class SUDSModel(Model):
         rgb_base = outputs[RGB]
         acc = colormaps.apply_colormap(outputs[WEIGHTS_SQ], cmap='inferno')
         depth = self.apply_depth_colormap(outputs[DEPTH])
-
         if self.config.dynamic_only or self.config.static_only:
             combined_rgb = torch.cat([rgb_gt_base, rgb_base], dim=1)
         else:
             combined_rgb = torch.cat([torch.cat([rgb_gt_base, rgb_base], dim=1),
                                       torch.cat([outputs[STATIC_RGB], outputs[DYNAMIC_RGB]], dim=1)], dim=0)
-
         mask = batch[MASK].to(device)
         rgb_gt = rgb_gt_base.clone()
         rgb = rgb_base.clone()
@@ -1288,64 +1286,65 @@ class SUDSModel(Model):
             WEIGHTS_SQ: acc,
             DEPTH: depth,
         }
+        if not True: #self.config.eval_depth_only:
+            if not self.config.static_only:
+                images_dict[ENTROPY] = colormaps.apply_colormap(outputs[ENTROPY], cmap='inferno')
 
-        if not self.config.static_only:
-            images_dict[ENTROPY] = colormaps.apply_colormap(outputs[ENTROPY], cmap='inferno')
+            if self.predict_feature:
+                for key in self.config.feature_clusters:
+                    images_dict[f'{FEATURES}_{key}'] = torch.cat([batch[f'{FEATURES}_{key}'].to(device),
+                                                                  outputs[f'{FEATURES}_{key}']], dim=1)
 
-        if self.predict_feature:
-            for key in self.config.feature_clusters:
-                images_dict[f'{FEATURES}_{key}'] = torch.cat([batch[f'{FEATURES}_{key}'].to(device),
-                                                              outputs[f'{FEATURES}_{key}']], dim=1)
+            if self.config.predict_shadow:
+                shadow_intensity = colormaps.apply_colormap(outputs[SHADOW], cmap='inferno')
+                if self.config.dynamic_only:
+                    images_dict[SHADOW] = shadow_intensity
+                else:
+                    images_dict[NO_SHADOW_RGB] = torch.cat([outputs[NO_SHADOW_RGB], shadow_intensity], dim=1)
 
-        if self.config.predict_shadow:
-            shadow_intensity = colormaps.apply_colormap(outputs[SHADOW], cmap='inferno')
-            if self.config.dynamic_only:
-                images_dict[SHADOW] = shadow_intensity
-            else:
-                images_dict[NO_SHADOW_RGB] = torch.cat([outputs[NO_SHADOW_RGB], shadow_intensity], dim=1)
+            if self.config.optical_flow_loss_start > 0:
+                for uv_key, flow_key in [(BACKWARD_UV, BACKWARD_FLOW), (FORWARD_UV, FORWARD_FLOW)]:
+                    if flow_key in batch:
+                        flow_gt = batch[flow_key].to(device)
+                        flow = outputs[uv_key] - batch[RAY_INDEX][..., [2, 1]].to(device)
 
-        if self.config.optical_flow_loss_start > 0:
-            for uv_key, flow_key in [(BACKWARD_UV, BACKWARD_FLOW), (FORWARD_UV, FORWARD_FLOW)]:
-                if flow_key in batch:
-                    flow_gt = batch[flow_key].to(device)
-                    flow = outputs[uv_key] - batch[RAY_INDEX][..., [2, 1]].to(device)
+                        # Make flow more visible when using sparse correspondences
+                        gt_skip = 1 if flow_gt.view(-1, 2)[flow_gt.view(-1, 2).abs().sum(dim=-1) > 0].shape[0] < 0.1 * \
+                                       flow_gt.view(-1, 2).shape[0] else None
 
-                    # Make flow more visible when using sparse correspondences
-                    gt_skip = 1 if flow_gt.view(-1, 2)[flow_gt.view(-1, 2).abs().sum(dim=-1) > 0].shape[0] < 0.1 * \
-                                   flow_gt.view(-1, 2).shape[0] else None
+                        images_dict[flow_key] = torch.cat([
+                            cat_imgflo(rgb_gt_base, flow_gt, skip=gt_skip),
+                            cat_imgflo(rgb_base, flow)
+                        ], dim=1)
 
-                    images_dict[flow_key] = torch.cat([
-                        cat_imgflo(rgb_gt_base, flow_gt, skip=gt_skip),
-                        cat_imgflo(rgb_base, flow)
-                    ], dim=1)
+            if self.config.num_layers_env_map > 0:
+                if self.loss_coefficients[SKY] > 0:
+                    rgb_gt_sky = rgb_gt_base.clone()
+                    rgb_gt_sky[batch[SKY] <= 0] = 0
+                    images_dict[NO_ENV_MAP_RGB] = torch.cat([outputs[NO_ENV_MAP_RGB], rgb_gt_sky], dim=1)
+                else:
+                    images_dict[NO_ENV_MAP_RGB] = outputs[NO_ENV_MAP_RGB]
 
-        if self.config.num_layers_env_map > 0:
-            if self.loss_coefficients[SKY] > 0:
-                rgb_gt_sky = rgb_gt_base.clone()
-                rgb_gt_sky[batch[SKY] <= 0] = 0
-                images_dict[NO_ENV_MAP_RGB] = torch.cat([outputs[NO_ENV_MAP_RGB], rgb_gt_sky], dim=1)
-            else:
-                images_dict[NO_ENV_MAP_RGB] = outputs[NO_ENV_MAP_RGB]
+            for i in range(self.config.num_proposal_iterations):
+                images_dict[f'{PROP_DEPTH}_{i}'] = self.apply_depth_colormap(outputs[f'{PROP_DEPTH}_{i}'])
 
-        for i in range(self.config.num_proposal_iterations):
-            images_dict[f'{PROP_DEPTH}_{i}'] = self.apply_depth_colormap(outputs[f'{PROP_DEPTH}_{i}'])
+            # SSIM needs to be [H, W, C]
+            ssim = self.ssim(rgb_gt, rgb)
 
-        # SSIM needs to be [H, W, C]
-        ssim = self.ssim(rgb_gt, rgb)
+            # Switch images from [H, W, C] to [1, C, H, W] for metrics computations
+            rgb_gt = torch.moveaxis(rgb_gt, -1, 0)[None, ...]
+            rgb = torch.moveaxis(rgb, -1, 0)[None, ...]
 
-        # Switch images from [H, W, C] to [1, C, H, W] for metrics computations
-        rgb_gt = torch.moveaxis(rgb_gt, -1, 0)[None, ...]
-        rgb = torch.moveaxis(rgb, -1, 0)[None, ...]
+            psnr = self.psnr(rgb_gt, rgb)
+            lpips = self.lpips(rgb_gt, rgb)
 
-        psnr = self.psnr(rgb_gt, rgb)
-        lpips = self.lpips(rgb_gt, rgb)
-
-        metrics_dict = {
-            'psnr': float(psnr),
-            'ssim': float(ssim),
-            'lpips': float(lpips),
-        }
-
+            metrics_dict = {
+                'psnr': float(psnr),
+                'ssim': float(ssim),
+                'lpips': float(lpips),
+            }
+        else:
+            metrics_dict = {}
         
         ground_truth_z = batch[DEPTH].to(self.device)
         
