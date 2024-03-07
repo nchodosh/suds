@@ -1263,7 +1263,7 @@ class SUDSModel(Model):
         return loss_dict
 
     def get_image_metrics_and_images(
-            self, outputs: Dict[str, torch.Tensor], batch: Dict[str, torch.Tensor]
+            self, outputs: Dict[str, torch.Tensor], batch: Dict[str, torch.Tensor], eval_depth_only=False
     ) -> Tuple[Dict[str, float], Dict[str, torch.Tensor]]:
         device = outputs[RGB].device
         rgb_gt_base = batch[RGB].to(device)
@@ -1286,7 +1286,7 @@ class SUDSModel(Model):
             WEIGHTS_SQ: acc,
             DEPTH: depth,
         }
-        if not True: #self.config.eval_depth_only:
+        if not eval_depth_only:
             if not self.config.static_only:
                 images_dict[ENTROPY] = colormaps.apply_colormap(outputs[ENTROPY], cmap='inferno')
 
