@@ -27,6 +27,8 @@ from torch.nn import Parameter, MSELoss, L1Loss
 from torchmetrics import PeakSignalNoiseRatio
 from torchmetrics.image import LearnedPerceptualImagePatchSimilarity
 from torchtyping import TensorType
+from nerfstudio.cameras.cameras import Cameras
+from nerfstudio.data.scene_box import OrientedBox
 
 from suds.composite_proposal_network_sampler import CompositeProposalNetworkSampler
 from suds.data.suds_dataparser import ALL_ITEMS, POSE_SCALE_FACTOR, ORIGIN
@@ -52,6 +54,8 @@ from suds.suds_constants import FEATURES, MASK, VIDEO_ID, APPEARANCE_EMBEDDING, 
     BACKWARD_NEIGHBOR_K, FORWARD_NEIGHBOR_W2C, FORWARD_NEIGHBOR_K, FORWARD_FLOW, BACKWARD_FLOW, SKY, NO_SHADOW_RGB, \
     STATIC_RGB, DYNAMIC_RGB, NO_ENV_MAP_RGB, OUTPUT_TYPE, FILTER_FEATURES
 from suds.suds_depth_renderer import SUDSDepthRenderer
+
+from pytorch3d.ops import knn_points
 
 CONSOLE = Console(width=120)
 
@@ -697,7 +701,12 @@ class SUDSModel(Model):
                                           ((self.config.entropy_loss_end / self.config.entropy_loss_start) ** (
                                                   1 / self.config.entropy_increase_max_iters)) \
                                           ** step
-
+        
+    def get_outputs_for_camera(self, camera: Cameras, obb_box: Optional[OrientedBox] = None) -> Dict[str, torch.Tensor]:
+        outputs = super().get_outputs_for_camera(camera, obb_box)
+        outputs['rays'] = camera.generate_rays(camera_indices=0, keep_shape=True, obb_box=obb_box)
+        return outputs
+    
     def get_outputs(self, ray_bundle: RayBundle, render_options: Optional[Dict[str, Any]] = None) -> Dict[
         str, torch.Tensor]:
         with torch.inference_mode(not self.training):
@@ -1336,6 +1345,27 @@ class SUDSModel(Model):
             'ssim': float(ssim),
             'lpips': float(lpips),
         }
+
+        ground_truth_z = batch["depth_image"].to(self.device)
+        if not self.config.is_euclidean_depth:
+            ground_truth_depth = ground_truth_z * outputs["directions_norm"]
+        else:
+            ground_truth_depth = ground_truth_z
+
+        depth_mask = ground_truth_depth > 0
+        target_depth = ground_truth_depth[depth_mask]
+        
+        ground_truth_xyz = (outputs['rays'].directions[depth_mask.squeeze(), :] * target_depth[..., None]).float()
+        predicted_xyz = (outputs['rays'].directions * outputs['expected_depth']).reshape(-1, 3)
+
+        sq_dists, _, _ = knn_points(ground_truth_xyz[None], predicted_xyz[None], K = 1)
+        dists = sq_dists.reshape(-1).sqrt()
+
+        metrics_dict['points_mse'] = float((dists ** 2).mean().cpu())
+        metrics_dict['points_rmse'] = float((dists ** 2).mean().sqrt().cpu())
+        metrics_dict['points_mae'] = float(dists.float().mean().cpu())
+        metrics_dict['points_accs'] = float((dists.abs() < 0.05).float().mean().cpu())
+        metrics_dict['points_accr'] = float((dists.abs() < 0.1).float().mean().cpu())
 
         return metrics_dict, images_dict
 
