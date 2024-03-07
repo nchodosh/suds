@@ -1346,7 +1346,7 @@ class SUDSModel(Model):
         }
 
         
-        ground_truth_z = batch["depth_image"].to(self.device)
+        ground_truth_z = batch[DEPTH].to(self.device)
         
         z_mask = ground_truth_z > 0
         target_z = ground_truth_z[z_mask]
@@ -1355,7 +1355,7 @@ class SUDSModel(Model):
         img_plane_points = ray_dirs / ray_dirs[..., 2]
         
         ground_truth_xyz = (img_plane_points[z_mask.squeeze(), :] * target_z[..., None]).float()
-        predicted_xyz = (img_plane_points.directions * depth).reshape(-1, 3)
+        predicted_xyz = (img_plane_points.directions * outputs[DEPTH]).reshape(-1, 3)
 
         sq_dists, _, _ = knn_points(ground_truth_xyz[None], predicted_xyz[None], K = 1)
         dists = sq_dists.reshape(-1).sqrt()
